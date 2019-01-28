@@ -1,0 +1,134 @@
+---
+title: "Text Mining Assignment 1"
+output: html_notebook
+---
+
+```{r}
+# import dependencies
+library(NLP)
+library(tm)
+library(SnowballC)
+```
+
+```{r}
+# read in csv
+beatles <- read.csv("lyrics_beatles.csv", header = TRUE, stringsAsFactors = FALSE)
+str(beatles) # view data
+```
+
+```{r}
+# create corpus of lyrics (column 3)
+corpus <- Corpus(VectorSource(beatles[ , 3]))
+corpus
+```
+
+```{r}
+# check corpus
+corpus[[1]]
+```
+
+```{r}
+# transform data to lowercase
+corpus <- tm_map(corpus, tolower)
+corpus
+```
+
+```{r}
+# transform data to remove punctuation and numbers
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, removeNumbers)
+```
+
+```{r}
+# remove english stopwords and complete stemming
+corpus <- tm_map(corpus, removeWords, stopwords("english"))
+corpus <- tm_map(corpus, stemDocument)
+dtm <- DocumentTermMatrix(corpus) # data to 'document term matrix'
+dtm
+```
+```{r}
+# Questions 2
+# * 187 is the number of entries (in this case songs)
+# * 1719 is the number terms found at least once in the 187 entries
+# * Non-/spares entries reads like this: 314453 cells in frequencies are 0, 7000 have non-zero values. 
+# * 98% of all cells are zero (which is 314453/(314453+7000))
+```
+
+```{r}
+dtm_99 <- removeSparseTerms(dtm, 0.99)
+dtm_99
+```
+```{r}
+dtm_98 <- removeSparseTerms(dtm, 0.98)
+dtm_98
+```
+
+```{r}
+dtm_97 <- removeSparseTerms(dtm, 0.97)
+dtm_97
+```
+
+```{r}
+dtm_96 <- removeSparseTerms(dtm, 0.96)
+dtm_96
+```
+
+```{r}
+# Question 4
+# * As % sparsity decreases, the dtm becomes smaller
+```
+
+```{r}
+dtm.beatles <- removeSparseTerms(dtm, 0.90)
+dtm.beatles
+
+# Question 5
+# * dtm.beatles contains 72 terms
+```
+
+```{r}
+# turn dtm into dataframe
+beatles.lyrics <- as.data.frame(as.matrix(dtm.beatles))
+head(beatles.lyrics)
+```
+
+```{r}
+# determine frequency of terms by summing columns
+freq.dtm <- sort(colSums(beatles.lyrics), decreasing=TRUE)
+```
+
+```{r}
+# create a dataframe with frequency data
+freq.data <- data.frame(word = names(freq.dtm), freq=freq.dtm)
+```
+
+```{r}
+# plot frequencies
+
+library(ggplot2)
+freq.plot <- ggplot(freq.data, aes(reorder(word, freq), freq)) + geom_col() + 
+    xlab(NULL) + coord_flip() + ylab("Frequency")+
+    theme(text = element_text(size = 8))
+print(freq.plot)
+
+# Questions 
+# 6.1: top (3) terms are 'love', 'know', 'don't'
+# 6.2: bottom (3) terms are 'hear', 'show', 'turn' 
+```
+
+```{r}
+# create dynamical heatmap
+library(qgraph)
+library(plotly)
+library(dplyr)
+cor.terms <- cor_auto(beatles.lyrics)
+a <- list(showticklabels = TRUE, tickangle = -45)
+plot.cor <- plot_ly(x = colnames(cor.terms), y = colnames(cor.terms),
+                      z = cor.terms, type = "heatmap") %>%
+    layout(xaxis = a,  showlegend = FALSE, margin = list(l=100,b=100,r=100,u=100))
+print(plot.cor)
+
+# Question 7.1: highest correlated terms are 'love' and 'need' 
+```
+
+
